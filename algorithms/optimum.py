@@ -1,3 +1,4 @@
+import numpy as np
 import gurobipy as gp
 from gurobipy import GRB
 
@@ -51,7 +52,7 @@ def L1_norm_second_minimize(X, y, g_opt, bound = GRB.INFINITY):
     b = m.addVar(lb=-bound, ub=bound, name='b')
     xi = m.addVars(n, lb=0.0, name='xi')
 
-    # 제약: u_j >= |w_j|
+    # Constraints: u_j >= |w_j|
     for j in range(d):
         m.addConstr(w[j] <= u[j], name=f"abs_pos_{j}")
         m.addConstr(-w[j] <= u[j], name=f"abs_neg_{j}")
@@ -61,7 +62,7 @@ def L1_norm_second_minimize(X, y, g_opt, bound = GRB.INFINITY):
         xi_expr = 1 - y[i] * (gp.quicksum(w[j] * X[i, j] for j in X[i].indices) + b)
         m.addConstr(xi[i] >= xi_expr, name=f"hinge_constr_{i}")
 
-    # Hinge loss <= g_opt 제약
+    # Hinge loss <= g_opt
     hinge_loss_expr = (1.0 / n) * gp.quicksum(xi[i] for i in range(n))
     m.addConstr(hinge_loss_expr <= g_opt, name="hinge_loss_upper_bound")
 
