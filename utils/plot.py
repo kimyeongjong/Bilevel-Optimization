@@ -9,5 +9,5 @@ def plot(path, ylabel='Value', *args, **kwargs):
     plt.ylabel(ylabel)
     plt.legend()
     plt.grid()
-    plt.show()
     plt.savefig(path, dpi=300, bbox_inches='tight')
+    plt.show()

@@ -42,7 +42,7 @@ if __name__ == "__main__":
     bics.solve(bics.initial, start_iter=1, end_iter=1000)
     
     # Initialize and train FCBiO algorithm
-    fcbio = FCBiO(X, y, L, bound, initial, T=1000, l=0, u=f_hat, hat_opt_g_x=g_opt, eps=1e-2)
+    fcbio = FCBiO(X, y, L, bound, initial, T=1000, l=0, u=f_hat, hat_opt_g_x=g_opt, eps=1e-1)
     _, fcbio_f, fcbio_g = fcbio.solve()
 
     # Save results
