@@ -2,7 +2,7 @@ import numpy as np
 import gurobipy as gp
 from gurobipy import GRB
 
-def hinge_loss_minimize(X, y, bound = GRB.INFINITY):
+def hinge_loss_minimize(X, y, bound=GRB.INFINITY, domain='box'):
     assert X.shape[0] == y.shape[0], "Dimensions (sample numbers) of X and y do not coincide."
     n_samples, n_features = X.shape[0], X.shape[1]
     
@@ -12,8 +12,13 @@ def hinge_loss_minimize(X, y, bound = GRB.INFINITY):
     model.setParam("OutputFlag", 1)
     
     # Variables: weight vector w, bias b and slack variables ξ_i
-    w = model.addVars(n_features, lb=-bound, ub=bound, name="w")
-    b = model.addVar(lb=-bound, ub=bound, name="b")
+    if domain == 'box':
+        w = model.addVars(n_features, lb=-bound, ub=bound, name="w")
+        b = model.addVar(lb=-bound, ub=bound, name="b")
+    else:
+        # Unbounded variables + L2-ball constraint later
+        w = model.addVars(n_features, name="w")
+        b = model.addVar(name="b")
     xi = model.addVars(n_samples, lb=0.0, name="xi")
     
     # Constraints: hinge loss slack for each sample
@@ -21,6 +26,11 @@ def hinge_loss_minimize(X, y, bound = GRB.INFINITY):
         xi_expr = 1 - y[i] * (gp.quicksum(w[j] * X[i, j] for j in X[i].indices) + b)
         model.addConstr(xi[i] >= xi_expr, name=f"hinge_constr_{i}")
     
+    # L2 ball constraint if requested
+    if domain == 'ball' and bound < GRB.INFINITY:
+        quad = b * b + gp.quicksum(w[j] * w[j] for j in range(n_features))
+        model.addQConstr(quad <= bound * bound, name="l2_ball")
+
     # Objective: Minimize average hinge loss
     model.setObjective((1.0 / n_samples) * gp.quicksum(xi[i] for i in range(n_samples)), GRB.MINIMIZE)
     
@@ -38,7 +48,7 @@ def hinge_loss_minimize(X, y, bound = GRB.INFINITY):
     return w_opt, b_opt, loss_value
 
 
-def L1_norm_second_minimize(X, y, g_opt, bound = GRB.INFINITY):
+def L1_norm_second_minimize(X, y, g_opt, bound=GRB.INFINITY, domain='box'):
     assert X.shape[0] == y.shape[0], "Dimensions (sample numbers) of X and y do not coincide."
     n, d = X.shape[0], X.shape[1]
 
@@ -47,9 +57,13 @@ def L1_norm_second_minimize(X, y, g_opt, bound = GRB.INFINITY):
     print(m.ModelName)
     m.setParam("OutputFlag", 1)
     
-    w = m.addVars(d, lb=-bound, ub=bound, name='w')
+    if domain == 'box':
+        w = m.addVars(d, lb=-bound, ub=bound, name='w')
+        b = m.addVar(lb=-bound, ub=bound, name='b')
+    else:
+        w = m.addVars(d, name='w')
+        b = m.addVar(name='b')
     u = m.addVars(d, lb=0.0, name='u') # u_i = |w_i|
-    b = m.addVar(lb=-bound, ub=bound, name='b')
     xi = m.addVars(n, lb=0.0, name='xi')
 
     # Constraints: u_j >= |w_j|
@@ -65,6 +79,11 @@ def L1_norm_second_minimize(X, y, g_opt, bound = GRB.INFINITY):
     # Hinge loss <= g_opt
     hinge_loss_expr = (1.0 / n) * gp.quicksum(xi[i] for i in range(n))
     m.addConstr(hinge_loss_expr <= g_opt, name="hinge_loss_upper_bound")
+
+    # L2 ball constraint if requested
+    if domain == 'ball' and bound < GRB.INFINITY:
+        quad = b * b + gp.quicksum(w[j] * w[j] for j in range(d))
+        m.addQConstr(quad <= bound * bound, name='l2_ball')
 
     # L1 norm
     m.setObjective(gp.quicksum(u[i] for i in range(d)) / d, GRB.MINIMIZE)
@@ -102,4 +121,3 @@ if __name__ == "__main__":
         print("✅ Gurobi is working with license!")
     except gp.GurobiError as e:
         print("❌ Error:", e)
-

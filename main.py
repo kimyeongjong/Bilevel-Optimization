@@ -57,16 +57,18 @@ if __name__ == "__main__":
         g_opt = float(base['g_opt'])
         f_opt = float(base['f_opt'])
         w_for_fhat = np.array(base.get('w_gopt', np.zeros(X.shape[1], dtype=np.float32)))
+        if base.get('domain') and base['domain'] != args.domain:
+            print("[Warning] Loaded baselines computed for domain='%s', current run uses domain='%s'." % (base['domain'], args.domain))
         print(f"Loaded baselines from {baselines_path}")
     else:
         if not args.skip_optimum:
-            w_gopt, b_gopt, g_opt = hinge_loss_minimize(X, y, bound=bound)
+            w_gopt, b_gopt, g_opt = hinge_loss_minimize(X, y, bound=bound, domain=args.domain)
             print(f"Optimal hinge loss: {g_opt:.4f}")
-            w_opt, b_opt, xi_opt, u_opt, f_opt = L1_norm_second_minimize(X, y, g_opt, bound=bound)
+            w_opt, b_opt, xi_opt, u_opt, f_opt = L1_norm_second_minimize(X, y, g_opt, bound=bound, domain=args.domain)
             print(f"Optimal upper L1 norm: {f_opt:.4f}")
             w_for_fhat = w_gopt
             with open(baselines_path, 'w') as f:
-                json.dump({'g_opt': g_opt, 'f_opt': f_opt, 'w_gopt': w_for_fhat.tolist()}, f)
+                json.dump({'g_opt': g_opt, 'f_opt': f_opt, 'w_gopt': w_for_fhat.tolist(), 'domain': args.domain}, f)
             print(f"Saved baselines to {baselines_path}")
         else:
             # Surrogate baselines when Gurobi is not available and no saved baselines
@@ -75,7 +77,7 @@ if __name__ == "__main__":
             f_opt = 0.0
             w_for_fhat = np.zeros(X.shape[1], dtype=np.float32)
             with open(baselines_path, 'w') as f:
-                json.dump({'g_opt': g_opt, 'f_opt': f_opt, 'w_gopt': w_for_fhat.tolist()}, f)
+                json.dump({'g_opt': g_opt, 'f_opt': f_opt, 'w_gopt': w_for_fhat.tolist(), 'domain': args.domain}, f)
             print(f"[Skip optimum] Saved surrogate baselines to {baselines_path}")
 
     # Early exit if only preparing baselines
