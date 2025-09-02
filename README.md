@@ -87,8 +87,21 @@ PARALLEL=1 NSAMPLES=5000 LABEL_IDX=2 BOUND=25 ./run.sh
 
 Environment variables to override defaults:
 
-- `NSAMPLES`, `LABEL_IDX`, `BOUND`, `BICS_ITERS`, `FCBIO_T`, `EPS`, `SEED`, `DATA_DIR`, `RESULTS_DIR`
+- `NSAMPLES`, `LABEL_IDX`, `BOUND`, `BICS_ITERS`, `FCBIO_T`, `EPS`, `SEED`, `DATA_DIR`, `RESULTS_DIR`, `DOMAIN`
 - `PARALLEL=1` to run BiCS and FCBiO concurrently after baselines
+
+Examples:
+
+```
+# Default (box domain), parallel
+PARALLEL=1 ./run.sh
+
+# Ball domain, custom size/iters, parallel
+DOMAIN=ball NSAMPLES=5000 BOUND=25 BICS_ITERS=1500 FCBIO_T=1500 PARALLEL=1 ./run.sh
+
+# Sequential run (PARALLEL=0) with box domain
+PARALLEL=0 NSAMPLES=10000 ./run.sh
+```
 
 ## Domains and Baselines
 
