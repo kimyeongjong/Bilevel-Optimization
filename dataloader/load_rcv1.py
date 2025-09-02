@@ -14,7 +14,12 @@ def load_rcv1_data(n_samples=10000, label_idx=0, path=None):
     full_path = f"{path}/rcv1_{n_samples}samples_idx{label_idx}.npz"
     if path and os.path.exists(full_path):
         data = np.load(full_path, allow_pickle=True)
-        X, y = data['X'].item(), data['y']
+        if 'X_data' in data:
+            X = csr_matrix((data['X_data'], data['X_indices'], data['X_indptr']), shape=tuple(data['X_shape']))
+            y = data['y']
+        else:
+            # backward compatibility for pickled sparse matrix
+            X, y = data['X'].item(), data['y']
         print(f"Loaded data from {full_path}")
         return X, y
     else:
@@ -32,7 +37,16 @@ def load_rcv1_data(n_samples=10000, label_idx=0, path=None):
 
         save_path = os.path.join(path, f"rcv1_{n_samples}samples_idx{label_idx}.npz")
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        np.savez(f"{path}/rcv1_{n_samples}samples_idx{label_idx}.npz", X=X, y=y)
+        # save CSR explicitly to avoid pickling, and keep y
+        X_csr: csr_matrix = X.tocsr()
+        np.savez(
+            save_path,
+            X_data=X_csr.data,
+            X_indices=X_csr.indices,
+            X_indptr=X_csr.indptr,
+            X_shape=X_csr.shape,
+            y=y,
+        )
         print(f"Saved data to {full_path}")
         print(f"Data shape: X={X.shape}, y={y.shape}")
         return X, y

@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 def plot(path, ylabel='Value', *args, **kwargs):
@@ -10,4 +12,3 @@ def plot(path, ylabel='Value', *args, **kwargs):
     plt.legend()
     plt.grid()
     plt.savefig(path, dpi=300, bbox_inches='tight')
-    plt.show()
