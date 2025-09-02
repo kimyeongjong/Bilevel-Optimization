@@ -29,6 +29,8 @@ class BiCS:
         self.criterion = [None]
         self.f_plot = []
         self.g_plot = []
+        # Track running minimum of g(y_t), i.e., gy_
+        self.gy_min_hist = []
 
     def u_t(self, t): 
         return 3 * self.L * self.R / np.sqrt(t)
@@ -59,10 +61,12 @@ class BiCS:
             self.g_hist.append(self.g_val(x))
             
             gt = self.g_val(x)
-            x_ -= self.subgrad_g(x_) * (2 * self.R / (self.Lg * np.sqrt(t))) # y_t
+            x_ -= self.subgrad_g(x_) * (2 * self.bound / (self.Lg * np.sqrt(t))) # y_t
             x_ = project_onto_box(x_, self.bound)
             gy = self.g_val(x_)
             gy_ = min(gy, gy_)
+            # record the running minimum gy_
+            self.gy_min_hist.append(gy_)
             dt = min(delta_prev, self.u_t(t))
             # choose subgradient
             if gt <= gy_ + dt:
@@ -86,4 +90,3 @@ class BiCS:
             x = project_onto_box(x, self.bound)
             delta_prev = dt
         self.checkpoint = x.copy()
-
