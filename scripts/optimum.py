@@ -102,3 +102,4 @@ if __name__ == "__main__":
         print("✅ Gurobi is working with license!")
     except gp.GurobiError as e:
         print("❌ Error:", e)
+

@@ -38,3 +38,4 @@ def subgradient_hinge_loss(X, y, x):
 
 def project_onto_box(x, bound):
     return np.clip(x, -bound, bound)
+

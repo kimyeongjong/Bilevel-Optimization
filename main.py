@@ -2,9 +2,9 @@ import os
 import argparse
 import numpy as np
 from dataloader import load_rcv1_data
-from algorithms import BiCS, FCBiO, hinge_loss_minimize, L1_norm_second_minimize
+from scripts import BiCS, FCBiO, hinge_loss_minimize, L1_norm_second_minimize
 from utils import save, plot
-from algorithms.settings import hinge_loss
+from scripts.settings import hinge_loss
 
 
 def parse_args():

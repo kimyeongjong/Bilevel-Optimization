@@ -8,7 +8,7 @@ The code includes:
 - FC-BiO — a binary-search-based variant using a composite objective max(f(x)−t, g(x)−g⋆).
 - Exact baselines via Gurobi to compute the lower-level optimum (hinge loss) and then the upper-level optimum (minimal L1 norm among lower-level minimizers).
 
-The implementation is sparse-first: data is kept in CSR sparse format and all core computations support sparse matrices.
+The implementation is sparse-first: data is kept in CSR sparse format and all core computations support sparse matrices. Core scripts live under `scripts/` (previously `algorithms/`).
 
 ## Installation
 
@@ -74,4 +74,3 @@ python main.py \
 - Headless plotting is enabled by default (matplotlib Agg backend; no `plt.show()`).
 - If you skip the optimum stage, the upper/lower gaps are computed against surrogate baselines (e.g., zero vector for g⋆); the absolute values are not directly comparable to the exact optimal gaps but still show convergence trends.
 - Lipschitz constants use heuristic estimates. Consider feature normalization or conservative bounds for stability on different datasets.
-

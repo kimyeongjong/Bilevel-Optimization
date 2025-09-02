@@ -134,3 +134,4 @@ class FCBiO:
         ])
         
         return self.x_trajectory_mean, self.l1_norm_history, self.hinge_loss_history
+

@@ -86,3 +86,4 @@ class BiCS:
             x = project_onto_box(x, self.bound)
             delta_prev = dt
         self.checkpoint = x.copy()
+
