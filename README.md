@@ -63,6 +63,7 @@ Key outputs (under `--results-dir`):
 - `--data-dir`: Relative data subdirectory to store/find the `.npz` (default: `data`)
 - `--bound`: Box bound for parameters `(w, b)` (default: 50)
 - `--algo {bics,fcbio}`: Select algorithm to run (default: bics)
+- `--domain {box,ball}`: Feasible domain. `box` uses a hypercube constraint `(w,b) ∈ [-bound, bound]^{d+1}`; `ball` uses an L2-ball constraint `||(w,b)||_2 ≤ bound` (default: box)
 - `--bics-iters`: BiCS total iterations (default: 1000)
 - `--fcbio-T`: FC-BiO total iterations across all episodes (default: 1000)
 - `--eps`: Target accuracy for FC-BiO (default: 1e-1)
@@ -74,8 +75,8 @@ Key outputs (under `--results-dir`):
 Example:
 
 ```
-# Baselines only, then parallel runs via run.sh
-python main.py --only-baselines --n-samples 5000 --label-idx 2 --bound 25 \
+# Baselines only (ball domain), then parallel runs via run.sh
+python main.py --only-baselines --n-samples 5000 --label-idx 2 --bound 25 --domain ball \
   --results-dir results/exp_rcv1_5k
 PARALLEL=1 NSAMPLES=5000 LABEL_IDX=2 BOUND=25 ./run.sh
 ```
@@ -88,6 +89,14 @@ Environment variables to override defaults:
 
 - `NSAMPLES`, `LABEL_IDX`, `BOUND`, `BICS_ITERS`, `FCBIO_T`, `EPS`, `SEED`, `DATA_DIR`, `RESULTS_DIR`
 - `PARALLEL=1` to run BiCS and FCBiO concurrently after baselines
+
+## Domains and Baselines
+
+- Domain selection affects both the algorithm projections and the exact baselines (g⋆, f⋆):
+  - `--domain box`: `(w,b)` constrained to the hypercube `[-bound, bound]^{d+1}`.
+  - `--domain ball`: `(w,b)` constrained to the L2-ball of radius `bound` via a quadratic constraint.
+- `baselines.json` stores the domain used to compute g⋆ and f⋆. When loading existing baselines with a different `--domain`, a warning is shown; re-run `--only-baselines` to regenerate for the current domain.
+- Gurobi note: `--domain ball` uses a quadratic constraint (QCQP). Ensure your Gurobi installation/license supports QCP.
 
 ## Notes
 
