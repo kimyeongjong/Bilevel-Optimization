@@ -1,9 +1,15 @@
 import os
+import sys
 import argparse
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
+# Ensure project root is on sys.path when running as a script
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
 from dataloader import load_rcv1_data
 from scripts import BiCS
@@ -63,4 +69,3 @@ if __name__ == '__main__':
         iters=args.iters,
         seed=args.seed,
     )
-
