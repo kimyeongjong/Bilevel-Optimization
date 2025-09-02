@@ -6,10 +6,11 @@ from .settings import (
     hinge_loss,
     subgradient_hinge_loss,
     project_onto_box,
+    project_onto_ball,
 )
 
 class BiCS:
-    def __init__(self, X, y, Lg, L, R, bound, initial, num_iter=1000):
+    def __init__(self, X, y, Lg, L, R, bound, initial, num_iter=1000, domain='box'):
         # Data and dimensions
         self.X = X
         self.y = y
@@ -21,6 +22,7 @@ class BiCS:
         self.R = R
         self.bound = bound
         self.num_iter = num_iter
+        self.domain = domain  # 'box' or 'ball'
         self.initial = initial.copy()
         self.checkpoint = np.zeros(self.n_features + 1)
         self.f_hist = [None]
@@ -61,8 +63,8 @@ class BiCS:
             self.g_hist.append(self.g_val(x))
             
             gt = self.g_val(x)
-            x_ -= self.subgrad_g(x_) * (2 * self.bound / (self.Lg * np.sqrt(t))) # y_t
-            x_ = project_onto_box(x_, self.bound)
+            x_ -= self.subgrad_g(x_) * (2 * self.R / (self.Lg * np.sqrt(t))) # y_t
+            x_ = project_onto_box(x_, self.bound) if self.domain == 'box' else project_onto_ball(x_, self.bound)
             gy = self.g_val(x_)
             gy_ = min(gy, gy_)
             # record the running minimum gy_
@@ -87,6 +89,6 @@ class BiCS:
             eta = self.R / np.sqrt(Gsq + 1e-16)
             x = x - eta * v
             # project back into box [-bound, bound]
-            x = project_onto_box(x, self.bound)
+            x = project_onto_box(x, self.bound) if self.domain == 'box' else project_onto_ball(x, self.bound)
             delta_prev = dt
         self.checkpoint = x.copy()

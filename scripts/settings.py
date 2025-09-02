@@ -39,3 +39,8 @@ def subgradient_hinge_loss(X, y, x):
 def project_onto_box(x, bound):
     return np.clip(x, -bound, bound)
 
+def project_onto_ball(x, radius):
+    norm = np.linalg.norm(x)
+    if norm <= radius or radius <= 0:
+        return x
+    return (radius / norm) * x

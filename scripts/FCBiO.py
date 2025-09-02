@@ -9,11 +9,12 @@ from .settings import (
     hinge_loss,
     subgradient_hinge_loss,
     project_onto_box,
+    project_onto_ball,
 )
 
 
 class FCBiO:
-    def __init__(self, X, y, L, bound, initial, T, l, u, g_star_hat, eps):
+    def __init__(self, X, y, L, bound, initial, T, l, u, g_star_hat, eps, domain='box'):
         """
         Initialize FC-BiO solver
         
@@ -55,6 +56,7 @@ class FCBiO:
         
         # Projection bound (hypercube radius)
         self.bound = bound
+        self.domain = domain  # 'box' or 'ball'
         
         # Stepsize for \eta_t
         D = 2 * self.bound * np.sqrt(self.d + 1)
@@ -94,10 +96,16 @@ class FCBiO:
             
             for k in trange(self.K - 1, desc=f"   Sub-iterations (n={n+1})", leave=False):
                 s = self.subgradient_psi(self.X, self.y, self.w[k], t)
-                self.w[k + 1] = project_onto_box(self.w[k] - self.eta * s, self.bound)
+                if self.domain == 'box':
+                    self.w[k + 1] = project_onto_box(self.w[k] - self.eta * s, self.bound)
+                else:
+                    self.w[k + 1] = project_onto_ball(self.w[k] - self.eta * s, self.bound)
                 
                 s_u = self.subgradient_psi(self.X, self.y, self.w_u[k], self.u)
-                self.w_u[k + 1] = project_onto_box(self.w_u[k] - self.eta * s_u, self.bound)
+                if self.domain == 'box':
+                    self.w_u[k + 1] = project_onto_box(self.w_u[k] - self.eta * s_u, self.bound)
+                else:
+                    self.w_u[k + 1] = project_onto_ball(self.w_u[k] - self.eta * s_u, self.bound)
             
             self.w_u_mean = np.cumsum(self.w_u, axis=0) / (np.arange(1, len(self.w_u) + 1))[:, np.newaxis]
             self.x_trajectory_mean[n * self.K:(n + 1) * self.K] = copy.deepcopy(self.w_u_mean)
@@ -134,4 +142,3 @@ class FCBiO:
         ])
         
         return self.x_trajectory_mean, self.l1_norm_history, self.hinge_loss_history
-

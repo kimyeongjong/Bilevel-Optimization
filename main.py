@@ -19,11 +19,12 @@ def parse_args():
     parser.add_argument('--algo', type=str, default='bics', choices=['bics','fcbio'], help='Algorithm to run')
     # Optimization / geometry
     parser.add_argument('--bound', type=float, default=50.0, help='Box bound for parameters (w,b)')
+    parser.add_argument('--domain', type=str, default='box', choices=['box','ball'], help='Feasible domain: hypercube (box) or L2 ball')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     # Algorithm iterations and accuracy
     parser.add_argument('--bics-iters', type=int, default=1000, help='BiCS iterations')
     parser.add_argument('--fcbio-T', type=int, default=1000, help='FC-BiO total iterations')
-    parser.add_argument('--eps', type=float, default=1e-1, help='Target accuracy for FC-BiO')
+    parser.add_argument('--eps', type=float, default=1e-2, help='Target accuracy for FC-BiO')
     # Output
     parser.add_argument('--results-dir', type=str, default=None, help='Results directory (default: results/results_{n}samples)')
     # Baselines
@@ -96,7 +97,7 @@ if __name__ == "__main__":
         rng = np.random.default_rng(args.seed)
         initial = rng.uniform(-bound, bound, size=d + 1)
 
-        bics = BiCS(X, y, Lg, L, R, bound, initial, num_iter=args.bics_iters)
+        bics = BiCS(X, y, Lg, L, R, bound, initial, num_iter=args.bics_iters, domain=args.domain)
         bics.solve(bics.initial, start_iter=1, end_iter=args.bics_iters)
         save(save_path, bics, **{'0': 'BiCS'})
         print(f"Saved BiCS result to {save_path}/BiCS.pkl")
@@ -110,7 +111,7 @@ if __name__ == "__main__":
         rng = np.random.default_rng(args.seed)
         initial = rng.uniform(-bound, bound, size=d + 1)
 
-        fcbio = FCBiO(X, y, L, bound, initial, T=args.fcbio_T, l=0, u=max(1e-6, np.linalg.norm(w_for_fhat, 1) / max(1, d)), g_star_hat=g_opt, eps=args.eps)
+        fcbio = FCBiO(X, y, L, bound, initial, T=args.fcbio_T, l=0, u=max(1e-6, np.linalg.norm(w_for_fhat, 1) / max(1, d)), g_star_hat=g_opt, eps=args.eps, domain=args.domain)
         _ = fcbio.solve()
         save(save_path, fcbio, **{'0': 'FCBiO'})
         print(f"Saved FCBiO result to {save_path}/FCBiO.pkl")
