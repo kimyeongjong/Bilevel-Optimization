@@ -30,16 +30,31 @@ You can also pre-place a file named `rcv1_{n_samples}samples_idx{label_idx}.npz`
 
 ## Usage
 
-Run experiments via:
+Two common workflows are supported: run a single algorithm, or orchestrate both and compare.
+
+1) Run a single algorithm and save results
 
 ```
-python main.py [options]
+# BiCS
+python main.py --algo bics --n-samples 10000 --label-idx 0 --bound 50 --bics-iters 1000 \
+  --results-dir results/results_10000samples
+
+# FCBiO (reuses saved baselines if present)
+python main.py --algo fcbio --n-samples 10000 --label-idx 0 --bound 50 --fcbio-T 1000 --eps 0.1 \
+  --results-dir results/results_10000samples --skip-optimum
 ```
 
-Key outputs:
+2) Plot/compare saved results
 
-- Pickled algorithm objects in `results/` (by default), one per algorithm.
-- Upper/Lower gap plots saved as PNGs.
+```
+python plot_compare.py --results-dir results/results_10000samples --algos BiCS FCBiO
+```
+
+Key outputs (under `--results-dir`):
+
+- `baselines.json`: cached g* and f* for the dataset/config
+- `BiCS.pkl`, `FCBiO.pkl`: pickled solver objects with histories
+- `plot_upper.png`, `plot_lower.png`: produced by `plot_compare.py`
 
 ## Arguments
 
@@ -47,27 +62,32 @@ Key outputs:
 - `--label-idx`: Label column index from RCV1 (default: 0)
 - `--data-dir`: Relative data subdirectory to store/find the `.npz` (default: `data`)
 - `--bound`: Box bound for parameters `(w, b)` (default: 50)
+- `--algo {bics,fcbio}`: Select algorithm to run (default: bics)
 - `--bics-iters`: BiCS total iterations (default: 1000)
 - `--fcbio-T`: FC-BiO total iterations across all episodes (default: 1000)
 - `--eps`: Target accuracy for FC-BiO (default: 1e-1)
-- `--results-dir`: Output directory for pickles and plots (default: `results/results_{n_samples}samples/`)
+- `--results-dir`: Output directory (default: `results/results_{n_samples}samples/`)
 - `--seed`: Random seed (default: 42)
-- `--skip-optimum`: Skip exact baseline via Gurobi; uses loose surrogates for plotting baselines (default: off)
-- `--no-plots`: Do not save plots (default: off)
+- `--skip-optimum`: Reuse or write surrogate baselines instead of solving with Gurobi
+- `--only-baselines`: Compute/save baselines and exit
 
 Example:
 
 ```
-python main.py \
-  --n-samples 5000 \
-  --label-idx 2 \
-  --bound 25 \
-  --bics-iters 1500 \
-  --fcbio-T 1500 \
-  --eps 5e-2 \
-  --results-dir results/exp_rcv1_5k \
-  --skip-optimum
+# Baselines only, then parallel runs via run.sh
+python main.py --only-baselines --n-samples 5000 --label-idx 2 --bound 25 \
+  --results-dir results/exp_rcv1_5k
+PARALLEL=1 NSAMPLES=5000 LABEL_IDX=2 BOUND=25 ./run.sh
 ```
+
+## Convenience Runner
+
+`run.sh` orchestrates the full pipeline: baselines → run BiCS/FCBiO (sequential or parallel) → plot.
+
+Environment variables to override defaults:
+
+- `NSAMPLES`, `LABEL_IDX`, `BOUND`, `BICS_ITERS`, `FCBIO_T`, `EPS`, `SEED`, `DATA_DIR`, `RESULTS_DIR`
+- `PARALLEL=1` to run BiCS and FCBiO concurrently after baselines
 
 ## Notes
 
