@@ -28,6 +28,7 @@ def parse_args():
     parser.add_argument('--results-dir', type=str, default=None, help='Results directory (default: results/results_{n}samples)')
     # Baselines
     parser.add_argument('--skip-optimum', action='store_true', help='Skip exact baselines via Gurobi')
+    parser.add_argument('--only-baselines', action='store_true', help='Compute/save baselines and exit')
 
     return parser.parse_args()
 
@@ -75,6 +76,11 @@ if __name__ == "__main__":
             with open(baselines_path, 'w') as f:
                 json.dump({'g_opt': g_opt, 'f_opt': f_opt, 'w_gopt': w_for_fhat.tolist()}, f)
             print(f"[Skip optimum] Saved surrogate baselines to {baselines_path}")
+
+    # Early exit if only preparing baselines
+    if args.only_baselines:
+        print(f"Baselines ready at {baselines_path}")
+        raise SystemExit(0)
 
     # Run a single algorithm and save its result object
     if args.algo == 'bics':
