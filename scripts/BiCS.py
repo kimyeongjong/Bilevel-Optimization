@@ -35,7 +35,7 @@ class BiCS:
         self.gy_min_hist = []
 
     def u_t(self, t): 
-        return 3 * self.L * self.R / np.sqrt(t)
+        return 3 / np.sqrt(t)
 
     def subgrad_f(self, x):
         return subgradient_l1_norm(x, self.n_features)
@@ -79,7 +79,7 @@ class BiCS:
                 self.criterion.append(False)
 
             l = (t + 1) // 2
-            tau = l + np.argmin([self.f_hist[i] if self.criterion[i] == True else np.inf for i in range(l, t + 1)])
+            tau = l + np.argmin([self.f_hist[i] if self.criterion[i] else np.inf for i in range(l, t + 1)])
 
             z = self.x_hist[tau]
             self.f_plot.append(self.f_val(z))

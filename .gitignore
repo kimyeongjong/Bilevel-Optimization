@@ -1,1 +1,30 @@
+# OS
+.DS_Store
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.so
+
+# Environments/IDE
+.venv/
+venv/
+env/
+.idea/
+.vscode/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+
+# Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Data artifacts
+dataloader/data/*.npz
+
+# Results/artifacts
 results/**/*.pkl
+results/**/*.png
+!
+!results/results_10000samples/*.png
