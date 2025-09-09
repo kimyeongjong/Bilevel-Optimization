@@ -25,7 +25,7 @@ env/
 dataloader/data/*.npz
 
 # Results/artifacts
-results/
+results/**/*.pkl
 
 # Tests (exclude from git)
 test/

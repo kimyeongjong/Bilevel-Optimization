@@ -10,7 +10,7 @@ from .settings import (
 )
 
 class BiCS:
-    def __init__(self, X, y, Lg, L, R, bound, initial, num_iter=1000, domain='box'):
+    def __init__(self, X, y, Lg, L, R, bound, initial, num_iter=1000, domain='box', mode='RL'):
         # Data and dimensions
         self.X = X
         self.y = y
@@ -23,6 +23,8 @@ class BiCS:
         self.bound = bound
         self.num_iter = num_iter
         self.domain = domain  # 'box' or 'ball'
+        # Mode: 'RL' (know R & L), 'R' (know R only), 'N' (know none), 'ER' (unbounded domain, Lipschitz f,g)
+        self.mode = mode.upper()
         self.initial = initial.copy()
         self.checkpoint = np.zeros(self.n_features + 1)
         self.f_hist = [None]
@@ -53,7 +55,8 @@ class BiCS:
         x = self.initial.copy() # x_t
         x_ = self.initial.copy() # y_t
 
-        Gsq = 0.0 # denominator for Adagrad
+        Gsq = 0.0 # denominator for Adagrad on x
+        Gsq_y = 0.0 # accumulator for y when Lg unknown
         delta_prev = np.inf
         gy_ = np.inf
 
@@ -63,8 +66,29 @@ class BiCS:
             self.g_hist.append(self.g_val(x))
             
             gt = self.g_val(x)
-            x_ -= self.subgrad_g(x_) * (2 * self.R / (self.Lg * np.sqrt(t))) # y_t
-            x_ = project_onto_box(x_, self.bound) if self.domain == 'box' else project_onto_ball(x_, self.bound)
+            # Update y_t depending on mode
+            gy_grad = self.subgrad_g(x_)
+            if self.mode == 'RL':
+                step_y = 2 * self.R / (self.Lg * np.sqrt(t))
+                x_ = x_ - step_y * gy_grad
+                # project into domain
+                x_ = project_onto_box(x_, self.bound) if self.domain == 'box' else project_onto_ball(x_, self.bound)
+            elif self.mode == 'R':
+                # Unknown Lg: AdaGrad on y using R
+                Gsq_y += float(np.dot(gy_grad, gy_grad))
+                step_y = 2 * self.R / np.sqrt(Gsq_y + 1e-16)
+                x_ = x_ - step_y * gy_grad
+                x_ = project_onto_box(x_, self.bound) if self.domain == 'box' else project_onto_ball(x_, self.bound)
+            elif self.mode == 'N':
+                # Unknown R and Lg (parameter-free style): AdaGrad on y without R
+                Gsq_y += float(np.dot(gy_grad, gy_grad))
+                step_y = 1.0 / np.sqrt(Gsq_y + 1e-16)
+                x_ = x_ - step_y * gy_grad
+                x_ = project_onto_box(x_, self.bound) if self.domain == 'box' else project_onto_ball(x_, self.bound)
+            else:  # 'ER' — unbounded domain; skip projection, parameter-free AdaGrad
+                Gsq_y += float(np.dot(gy_grad, gy_grad))
+                step_y = 1.0 / np.sqrt(Gsq_y + 1e-16)
+                x_ = x_ - step_y * gy_grad
             gy = self.g_val(x_)
             gy_ = min(gy, gy_)
             # record the running minimum gy_
@@ -85,10 +109,14 @@ class BiCS:
             self.f_plot.append(self.f_val(z))
             self.g_plot.append(self.g_val(z))
             
-            Gsq += np.dot(v, v)
-            eta = self.R / np.sqrt(Gsq + 1e-16)
+            Gsq += float(np.dot(v, v))
+            if self.mode in ('RL', 'R'):
+                eta = self.R / np.sqrt(Gsq + 1e-16)
+            else:
+                eta = 1.0 / np.sqrt(Gsq + 1e-16)
             x = x - eta * v
-            # project back into box [-bound, bound]
-            x = project_onto_box(x, self.bound) if self.domain == 'box' else project_onto_ball(x, self.bound)
+            # project back into domain unless ER (unbounded)
+            if self.mode != 'ER':
+                x = project_onto_box(x, self.bound) if self.domain == 'box' else project_onto_ball(x, self.bound)
             delta_prev = dt
         self.checkpoint = x.copy()

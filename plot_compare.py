@@ -16,10 +16,19 @@ def extract_series(obj, algo_name):
     return f, g
 
 
+def resolve_pkl_name(name: str) -> str:
+    # Map display names to pickle base filenames
+    mapping = {
+        'FC-BiO': 'FCBiO',
+        'a-IRG': 'aIRG',
+    }
+    return mapping.get(name, name)
+
+
 def main():
     ap = argparse.ArgumentParser(description='Compare and plot results from saved runs')
     ap.add_argument('--results-dir', type=str, required=True, help='Directory containing saved pickles and baselines.json')
-    ap.add_argument('--algos', type=str, nargs='+', default=['BiCS','FCBiO'], help='Algorithm names to compare')
+    ap.add_argument('--algos', type=str, nargs='+', default=['Bi-CS-RL','Bi-CS-R','Bi-CS-N','FC-BiO','a-IRG'], help='Algorithm names to compare')
     args = ap.parse_args()
 
     res_dir = args.results_dir
@@ -33,7 +42,7 @@ def main():
 
     series = {}
     for name in args.algos:
-        pkl = f'{name}.pkl'
+        pkl = f'{resolve_pkl_name(name)}.pkl'
         full = os.path.join(res_dir, pkl)
         if not os.path.exists(full):
             print(f'Warning: missing {full}; skipping')
@@ -64,4 +73,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

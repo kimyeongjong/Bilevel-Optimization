@@ -17,6 +17,7 @@ def parse_args():
     parser.add_argument('--data-dir', type=str, default='data', help='Relative data subdirectory under dataloader/')
     # Which algorithm to run
     parser.add_argument('--algo', type=str, default='bics', choices=['bics','fcbio','airg'], help='Algorithm to run')
+    parser.add_argument('--bics-mode', type=str, default='RL', choices=['RL','R','N','ER'], help='Bi-CS variant: RL (know R & L), R (know R), N (know none), ER (unbounded)')
     # Optimization / geometry
     parser.add_argument('--bound', type=float, default=50.0, help='Box bound for parameters (w,b)')
     parser.add_argument('--domain', type=str, default='box', choices=['box','ball'], help='Feasible domain: hypercube (box) or L2 ball')
@@ -108,10 +109,11 @@ if __name__ == "__main__":
         rng = np.random.default_rng(args.seed)
         initial = rng.uniform(-bound, bound, size=d + 1)
 
-        bics = BiCS(X, y, Lg, L, R, bound, initial, num_iter=args.iters, domain=args.domain)
+        bics = BiCS(X, y, Lg, L, R, bound, initial, num_iter=args.iters, domain=args.domain, mode=args.bics_mode)
         bics.solve(start_iter=1, end_iter=args.iters)
-        save(save_path, bics, **{'0': 'BiCS'})
-        print(f"Saved BiCS result to {save_path}/BiCS.pkl")
+        name = f"Bi-CS-{args.bics_mode}"
+        save(save_path, bics, **{'0': name})
+        print(f"Saved BiCS result to {save_path}/{name}.pkl")
     elif args.algo == 'fcbio':
         n, d = X.shape
         R = bound * np.sqrt(d + 1)

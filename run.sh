@@ -32,8 +32,16 @@ python main.py \
   --results-dir "$RESULTS_DIR"
 
 if [[ "$PARALLEL" == "1" ]]; then
-  echo "Running BiCS, FCBiO, and a-IRG in parallel…"
-  python main.py --algo bics \
+  echo "Running Bi-CS variants (RL,R,N), FCBiO, and a-IRG in parallel…"
+  python main.py --algo bics --bics-mode RL \
+    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
+    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" &
+
+  python main.py --algo bics --bics-mode R \
+    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
+    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" &
+
+  python main.py --algo bics --bics-mode N \
     --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
     --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" &
 
@@ -48,8 +56,18 @@ if [[ "$PARALLEL" == "1" ]]; then
 
   wait
 else
-  echo "Running BiCS…"
-  python main.py --algo bics \
+  echo "Running Bi-CS-RL…"
+  python main.py --algo bics --bics-mode RL \
+    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
+    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR"
+
+  echo "Running Bi-CS-R…"
+  python main.py --algo bics --bics-mode R \
+    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
+    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR"
+
+  echo "Running Bi-CS-N…"
+  python main.py --algo bics --bics-mode N \
     --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
     --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR"
 
@@ -66,6 +84,6 @@ else
 fi
 
 echo "Plotting comparison…"
-python plot_compare.py --results-dir "$RESULTS_DIR" --algos BiCS FCBiO aIRG
+python plot_compare.py --results-dir "$RESULTS_DIR" --algos "Bi-CS-RL" "Bi-CS-R" "Bi-CS-N" "FC-BiO" "a-IRG"
 
 echo "Done. Results in $RESULTS_DIR"

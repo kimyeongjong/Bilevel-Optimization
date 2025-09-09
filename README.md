@@ -6,6 +6,7 @@ The code includes:
 
 - Bi-CS (Bilevel Co-Subgradient) — an any-time method for nonsmooth bilevel problems.
 - FC-BiO — a binary-search-based variant using a composite objective max(f(x)−t, g(x)−g⋆).
+- Bi-CS variants — modes: RL (know R and L), R (know R only), N (know none), ER (unbounded domain).
 - a-IRG — deterministic Iteratively Regularized Gradient specialized to our bilevel setup.
 - Exact baselines via Gurobi to compute the lower-level optimum (hinge loss) and then the upper-level optimum (minimal L1 norm among lower-level minimizers).
 
@@ -36,8 +37,8 @@ Two common workflows are supported: run a single algorithm, or orchestrate both 
 1) Run a single algorithm and save results
 
 ```
-# BiCS (default results-dir: results/bd50_box_iters1000_eps0.1)
-python main.py --algo bics --n-samples 10000 --label-idx 0 --bound 50 --iters 1000
+# Bi-CS (mode selectable via --bics-mode)
+python main.py --algo bics --bics-mode RL --n-samples 10000 --label-idx 0 --bound 50 --iters 1000
 
 # FCBiO (reuses saved baselines if present)
 python main.py --algo fcbio --n-samples 10000 --label-idx 0 --bound 50 --iters 1000 --eps 0.1 --skip-optimum
@@ -50,7 +51,7 @@ python main.py --algo airg --n-samples 10000 --label-idx 0 --bound 50 --iters 10
 2) Plot/compare saved results
 
 ```
-python plot_compare.py --results-dir results/bd50_box_iters1000_eps0.1 --algos BiCS FCBiO aIRG
+python plot_compare.py --results-dir results/bd50_box_iters1000_eps0.1 --algos "Bi-CS-RL" "Bi-CS-R" "Bi-CS-N" "FC-BiO" "a-IRG"
 ```
 
 Key outputs (under `--results-dir`):
