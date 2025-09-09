@@ -49,7 +49,7 @@ class BiCS:
     def f_val(self, x):
         return l1_norm(x, self.n_features)
 
-    def solve(self, initial, start_iter, end_iter):
+    def solve(self, start_iter, end_iter):
         x = self.initial.copy() # x_t
         x_ = self.initial.copy() # y_t
 

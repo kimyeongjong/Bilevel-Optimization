@@ -16,15 +16,16 @@ env/
 .mypy_cache/
 *.egg-info/
 
-# Notebooks
+# Notebooks and papers
 .ipynb_checkpoints/
 *.ipynb
+*.pdf
 
 # Data artifacts
 dataloader/data/*.npz
 
 # Results/artifacts
-results/**/*.pkl
-results/**/*.png
-!
-!results/results_10000samples/*.png
+results/
+
+# Tests (exclude from git)
+test/

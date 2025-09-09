@@ -6,9 +6,10 @@ The code includes:
 
 - Bi-CS (Bilevel Co-Subgradient) — an any-time method for nonsmooth bilevel problems.
 - FC-BiO — a binary-search-based variant using a composite objective max(f(x)−t, g(x)−g⋆).
+- a-IRG — deterministic Iteratively Regularized Gradient specialized to our bilevel setup.
 - Exact baselines via Gurobi to compute the lower-level optimum (hinge loss) and then the upper-level optimum (minimal L1 norm among lower-level minimizers).
 
-The implementation is sparse-first: data is kept in CSR sparse format and all core computations support sparse matrices. Core scripts live under `scripts/` (previously `algorithms/`).
+The implementation is sparse-first: data is kept in CSR sparse format and all core computations support sparse matrices. Core scripts live under `scripts/`.
 
 ## Installation
 
@@ -35,19 +36,21 @@ Two common workflows are supported: run a single algorithm, or orchestrate both 
 1) Run a single algorithm and save results
 
 ```
-# BiCS
-python main.py --algo bics --n-samples 10000 --label-idx 0 --bound 50 --bics-iters 1000 \
-  --results-dir results/results_10000samples
+# BiCS (default results-dir: results/bd50_box_iters1000_eps0.1)
+python main.py --algo bics --n-samples 10000 --label-idx 0 --bound 50 --iters 1000
 
 # FCBiO (reuses saved baselines if present)
-python main.py --algo fcbio --n-samples 10000 --label-idx 0 --bound 50 --fcbio-T 1000 --eps 0.1 \
-  --results-dir results/results_10000samples --skip-optimum
+python main.py --algo fcbio --n-samples 10000 --label-idx 0 --bound 50 --iters 1000 --eps 0.1 --skip-optimum
+
+# a-IRG (uses same iteration flag)
+python main.py --algo airg --n-samples 10000 --label-idx 0 --bound 50 --iters 1000 \
+  --airg-gamma0 1.0 --airg-eta0 1.0 --airg-b 0.25 --airg-r 0.5
 ```
 
 2) Plot/compare saved results
 
 ```
-python plot_compare.py --results-dir results/results_10000samples --algos BiCS FCBiO
+python plot_compare.py --results-dir results/bd50_box_iters1000_eps0.1 --algos BiCS FCBiO aIRG
 ```
 
 Key outputs (under `--results-dir`):
@@ -62,12 +65,12 @@ Key outputs (under `--results-dir`):
 - `--label-idx`: Label column index from RCV1 (default: 0)
 - `--data-dir`: Relative data subdirectory to store/find the `.npz` (default: `data`)
 - `--bound`: Box bound for parameters `(w, b)` (default: 50)
-- `--algo {bics,fcbio}`: Select algorithm to run (default: bics)
+- `--algo {bics,fcbio,airg}`: Select algorithm to run (default: bics)
+  - `--airg-gamma0`, `--airg-eta0`, `--airg-b`, `--airg-r`: a-IRG hyperparameters per Cor. 3.5
 - `--domain {box,ball}`: Feasible domain. `box` uses a hypercube constraint `(w,b) ∈ [-bound, bound]^{d+1}`; `ball` uses an L2-ball constraint `||(w,b)||_2 ≤ bound` (default: box)
-- `--bics-iters`: BiCS total iterations (default: 1000)
-- `--fcbio-T`: FC-BiO total iterations across all episodes (default: 1000)
+- `--iters`: Total iterations for algorithms (default: 1000)
 - `--eps`: Target accuracy for FC-BiO (default: 1e-1)
-- `--results-dir`: Output directory (default: `results/results_{n_samples}samples/`)
+- `--results-dir`: Output directory (default: `results/bd{bound}_{domain}_iters{iters}_eps{eps}`)
 - `--seed`: Random seed (default: 42)
 - `--skip-optimum`: Reuse or write surrogate baselines instead of solving with Gurobi
 - `--only-baselines`: Compute/save baselines and exit
@@ -87,7 +90,7 @@ PARALLEL=1 NSAMPLES=5000 LABEL_IDX=2 BOUND=25 ./run.sh
 
 Environment variables to override defaults:
 
-- `NSAMPLES`, `LABEL_IDX`, `BOUND`, `BICS_ITERS`, `FCBIO_T`, `EPS`, `SEED`, `DATA_DIR`, `RESULTS_DIR`, `DOMAIN`
+- `NSAMPLES`, `LABEL_IDX`, `BOUND`, `ITERS`, `EPS`, `SEED`, `DATA_DIR`, `RESULTS_DIR`, `DOMAIN`
 - `PARALLEL=1` to run BiCS and FCBiO concurrently after baselines
 
 Examples:
@@ -97,7 +100,7 @@ Examples:
 PARALLEL=1 ./run.sh
 
 # Ball domain, custom size/iters, parallel
-DOMAIN=ball NSAMPLES=5000 BOUND=25 BICS_ITERS=1500 FCBIO_T=1500 PARALLEL=1 ./run.sh
+DOMAIN=ball NSAMPLES=5000 BOUND=25 ITERS=1500 PARALLEL=1 ./run.sh
 
 # Sequential run (PARALLEL=0) with box domain
 PARALLEL=0 NSAMPLES=10000 ./run.sh

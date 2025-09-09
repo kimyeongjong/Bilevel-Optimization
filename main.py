@@ -2,7 +2,7 @@ import os
 import argparse
 import numpy as np
 from dataloader import load_rcv1_data
-from scripts import BiCS, FCBiO, hinge_loss_minimize, L1_norm_second_minimize
+from scripts import BiCS, FCBiO, aIRG, hinge_loss_minimize, L1_norm_second_minimize
 from utils import save
 from scripts.settings import hinge_loss
 
@@ -16,17 +16,21 @@ def parse_args():
     parser.add_argument('--label-idx', type=int, default=0, help='Label index from RCV1 targets')
     parser.add_argument('--data-dir', type=str, default='data', help='Relative data subdirectory under dataloader/')
     # Which algorithm to run
-    parser.add_argument('--algo', type=str, default='bics', choices=['bics','fcbio'], help='Algorithm to run')
+    parser.add_argument('--algo', type=str, default='bics', choices=['bics','fcbio','airg'], help='Algorithm to run')
     # Optimization / geometry
     parser.add_argument('--bound', type=float, default=50.0, help='Box bound for parameters (w,b)')
     parser.add_argument('--domain', type=str, default='box', choices=['box','ball'], help='Feasible domain: hypercube (box) or L2 ball')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     # Algorithm iterations and accuracy
-    parser.add_argument('--bics-iters', type=int, default=1000, help='BiCS iterations')
-    parser.add_argument('--fcbio-T', type=int, default=1000, help='FC-BiO total iterations')
+    parser.add_argument('--iters', type=int, default=1000, help='Total iterations for algorithms')
     parser.add_argument('--eps', type=float, default=1e-2, help='Target accuracy for FC-BiO')
+    # a-IRG hyperparameters (optional)
+    parser.add_argument('--airg-gamma0', type=float, default=1.0, help='a-IRG γ0 for γ_k=γ0/(k+1)^{1/2}')
+    parser.add_argument('--airg-eta0', type=float, default=1.0, help='a-IRG η0 for η_k=η0/(k+1)^b')
+    parser.add_argument('--airg-b', type=float, default=0.25, help='a-IRG exponent b in (0, 0.5)')
+    parser.add_argument('--airg-r', type=float, default=0.5, help='a-IRG averaging exponent r in [0,1)')
     # Output
-    parser.add_argument('--results-dir', type=str, default=None, help='Results directory (default: results/results_{n}samples)')
+    parser.add_argument('--results-dir', type=str, default=None, help='Results directory (default encodes bound/domain/iters/eps)')
     # Baselines
     parser.add_argument('--skip-optimum', action='store_true', help='Skip exact baselines via Gurobi')
     parser.add_argument('--only-baselines', action='store_true', help='Compute/save baselines and exit')
@@ -43,7 +47,12 @@ if __name__ == "__main__":
 
     # Results directory and baselines file
     bound = args.bound
-    default_results = f"results/results_{args.n_samples}samples/" if args.results_dir is None else args.results_dir
+    if args.results_dir is None:
+        # Include only bound/domain/iteration/epsilon per user spec
+        tag = f"bd{args.bound:g}_{args.domain}_iters{args.iters}_eps{args.eps}"
+        default_results = os.path.join("results", tag)
+    else:
+        default_results = args.results_dir
     save_path = os.path.join(here, default_results)
     os.makedirs(save_path, exist_ok=True)
 
@@ -99,8 +108,8 @@ if __name__ == "__main__":
         rng = np.random.default_rng(args.seed)
         initial = rng.uniform(-bound, bound, size=d + 1)
 
-        bics = BiCS(X, y, Lg, L, R, bound, initial, num_iter=args.bics_iters, domain=args.domain)
-        bics.solve(bics.initial, start_iter=1, end_iter=args.bics_iters)
+        bics = BiCS(X, y, Lg, L, R, bound, initial, num_iter=args.iters, domain=args.domain)
+        bics.solve(start_iter=1, end_iter=args.iters)
         save(save_path, bics, **{'0': 'BiCS'})
         print(f"Saved BiCS result to {save_path}/BiCS.pkl")
     elif args.algo == 'fcbio':
@@ -113,8 +122,26 @@ if __name__ == "__main__":
         rng = np.random.default_rng(args.seed)
         initial = rng.uniform(-bound, bound, size=d + 1)
 
-        fcbio = FCBiO(X, y, L, bound, initial, T=args.fcbio_T, l=0, u=max(1e-6, np.linalg.norm(w_for_fhat, 1) / max(1, d)), g_star_hat=g_opt, eps=args.eps, domain=args.domain)
+        fcbio = FCBiO(X, y, L, bound, initial, T=args.iters, l=0, u=max(1e-6, np.linalg.norm(w_for_fhat, 1) / max(1, d)), g_star_hat=g_opt, eps=args.eps, domain=args.domain)
         _ = fcbio.solve()
         save(save_path, fcbio, **{'0': 'FCBiO'})
         print(f"Saved FCBiO result to {save_path}/FCBiO.pkl")
+    elif args.algo == 'airg':
+        n, d = X.shape
+        rng = np.random.default_rng(args.seed)
+        initial = rng.uniform(-bound, bound, size=d + 1)
+        airg = aIRG(
+            X, y,
+            bound=bound,
+            initial=initial,
+            num_iter=args.iters,
+            domain=args.domain,
+            gamma0=args.airg_gamma0,
+            eta0=args.airg_eta0,
+            b=args.airg_b,
+            r=args.airg_r,
+        )
+        _ = airg.solve(start_iter=0, end_iter=args.iters)
+        save(save_path, airg, **{'0': 'aIRG'})
+        print(f"Saved aIRG result to {save_path}/aIRG.pkl")
     
