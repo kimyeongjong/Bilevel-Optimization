@@ -4,10 +4,10 @@ This project implements bilevel optimization algorithms for nonsmooth convex pro
 
 The code includes:
 
-- Bi-CS (Bilevel Co-Subgradient) — an any-time method for nonsmooth bilevel problems.
+- Bi-CS (Bilevel Co-Subgradient, Algorithm 2.1) with modes RL (know R and L), R (know R only), N (know none), and ER (episodic reset for unbounded domain).
 - FC-BiO — a binary-search-based variant using a composite objective max(f(x)−t, g(x)−g⋆).
-- Bi-CS variants — modes: RL (know R and L), R (know R only), N (know none), ER (unbounded domain).
 - a-IRG — deterministic Iteratively Regularized Gradient specialized to our bilevel setup.
+- IIBA — a simple iterative inner-then-outer baseline for comparison.
 - Exact baselines via Gurobi to compute the lower-level optimum (hinge loss) and then the upper-level optimum (minimal L1 norm among lower-level minimizers).
 
 The implementation is sparse-first: data is kept in CSR sparse format and all core computations support sparse matrices. Core scripts live under `scripts/`.
@@ -51,13 +51,13 @@ python main.py --algo airg --n-samples 10000 --label-idx 0 --bound 50 --iters 10
 2) Plot/compare saved results
 
 ```
-python plot_compare.py --results-dir results/bd50_box_iters1000_eps0.1 --algos "Bi-CS-RL" "Bi-CS-R" "Bi-CS-N" "FC-BiO" "a-IRG"
+python plot_compare.py --results-dir results/bd50_box_iters1000_eps0.1 --algos "Bi-CS-RL" "Bi-CS-R" "Bi-CS-N" "Bi-CS-ER" "FC-BiO" "a-IRG" "IIBA"
 ```
 
 Key outputs (under `--results-dir`):
 
 - `baselines.json`: cached g* and f* for the dataset/config
-- `BiCS.pkl`, `FCBiO.pkl`: pickled solver objects with histories
+- Pickled solver objects with histories: `Bi-CS-RL.pkl`, `Bi-CS-R.pkl`, `Bi-CS-N.pkl`, `Bi-CS-ER.pkl`, `FCBiO.pkl`, `aIRG.pkl`, `IIBA.pkl`
 - `plot_upper.png`, `plot_lower.png`: produced by `plot_compare.py`
 
 ## Arguments
@@ -66,7 +66,7 @@ Key outputs (under `--results-dir`):
 - `--label-idx`: Label column index from RCV1 (default: 0)
 - `--data-dir`: Relative data subdirectory to store/find the `.npz` (default: `data`)
 - `--bound`: Box bound for parameters `(w, b)` (default: 50)
-- `--algo {bics,fcbio,airg}`: Select algorithm to run (default: bics)
+- `--algo {bics,fcbio,airg,iiba}`: Select algorithm to run (default: bics)
   - `--airg-gamma0`, `--airg-eta0`, `--airg-b`, `--airg-r`: a-IRG hyperparameters per Cor. 3.5
 - `--domain {box,ball}`: Feasible domain. `box` uses a hypercube constraint `(w,b) ∈ [-bound, bound]^{d+1}`; `ball` uses an L2-ball constraint `||(w,b)||_2 ≤ bound` (default: box)
 - `--iters`: Total iterations for algorithms (default: 1000)
@@ -87,12 +87,12 @@ PARALLEL=1 NSAMPLES=5000 LABEL_IDX=2 BOUND=25 ./run.sh
 
 ## Convenience Runner
 
-`run.sh` orchestrates the full pipeline: baselines → run BiCS/FCBiO (sequential or parallel) → plot.
+`run.sh` orchestrates the full pipeline: baselines → run 7 algorithms (Bi-CS RL/R/N/ER, FC-BiO, a-IRG, IIBA) → plot.
 
 Environment variables to override defaults:
 
 - `NSAMPLES`, `LABEL_IDX`, `BOUND`, `ITERS`, `EPS`, `SEED`, `DATA_DIR`, `RESULTS_DIR`, `DOMAIN`
-- `PARALLEL=1` to run BiCS and FCBiO concurrently after baselines
+- `PARALLEL=1` to run all algorithms concurrently after baselines
 
 Examples:
 

@@ -2,7 +2,7 @@ import os
 import argparse
 import numpy as np
 from dataloader import load_rcv1_data
-from scripts import BiCS, FCBiO, aIRG, hinge_loss_minimize, L1_norm_second_minimize
+from scripts import BiCS, FCBiO, aIRG, IIBA, hinge_loss_minimize, L1_norm_second_minimize
 from utils import save
 from scripts.settings import hinge_loss
 
@@ -16,7 +16,7 @@ def parse_args():
     parser.add_argument('--label-idx', type=int, default=0, help='Label index from RCV1 targets')
     parser.add_argument('--data-dir', type=str, default='data', help='Relative data subdirectory under dataloader/')
     # Which algorithm to run
-    parser.add_argument('--algo', type=str, default='bics', choices=['bics','fcbio','airg'], help='Algorithm to run')
+    parser.add_argument('--algo', type=str, default='bics', choices=['bics','fcbio','airg','iiba'], help='Algorithm to run')
     parser.add_argument('--bics-mode', type=str, default='RL', choices=['RL','R','N','ER'], help='Bi-CS variant: RL (know R & L), R (know R), N (know none), ER (unbounded)')
     # Optimization / geometry
     parser.add_argument('--bound', type=float, default=50.0, help='Box bound for parameters (w,b)')
@@ -109,7 +109,7 @@ if __name__ == "__main__":
         rng = np.random.default_rng(args.seed)
         initial = rng.uniform(-bound, bound, size=d + 1)
 
-        bics = BiCS(X, y, Lg, L, R, bound, initial, num_iter=args.iters, domain=args.domain, mode=args.bics_mode)
+        bics = BiCS(X, y, Lg, L, R, bound, initial, num_iter=args.iters, eps=args.eps, domain=args.domain, mode=args.bics_mode)
         bics.solve(start_iter=1, end_iter=args.iters)
         name = f"Bi-CS-{args.bics_mode}"
         save(save_path, bics, **{'0': name})
@@ -146,4 +146,17 @@ if __name__ == "__main__":
         _ = airg.solve(start_iter=0, end_iter=args.iters)
         save(save_path, airg, **{'0': 'aIRG'})
         print(f"Saved aIRG result to {save_path}/aIRG.pkl")
+    elif args.algo == 'iiba':
+        n, d = X.shape
+        R = bound * np.sqrt(d + 1)
+        Lf = np.sqrt(d) / d if d > 0 else 0.0
+        X_mean = np.asarray(X.mean(axis=0)).ravel()
+        Lg = np.sqrt(np.sum(X_mean**2) + 1)
+        L  = max(Lf, Lg)
+        rng = np.random.default_rng(args.seed)
+        initial = rng.uniform(-bound, bound, size=d + 1)
+        iiba = IIBA(X, y, L, R, bound, initial, num_iter=args.iters, domain=args.domain)
+        _ = iiba.solve(start_iter=1, end_iter=args.iters)
+        save(save_path, iiba, **{'0': 'IIBA'})
+        print(f"Saved IIBA result to {save_path}/IIBA.pkl")
     

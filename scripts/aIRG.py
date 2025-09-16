@@ -120,7 +120,7 @@ class aIRG:
             ek = self.eta_k(k)
 
             # Update x_{k+1}
-            xk1 = self._proj(xk - gk * Fk + ek * dfk)
+            xk1 = self._proj(xk - gk * (Fk + ek * dfk))
 
             # Averaging weights use γ_{k+1}
             gk1 = self.gamma_k(k + 1)

@@ -5,14 +5,22 @@ import numpy as np
 from utils import load, plot
 
 
+def _to_numeric(arr_like):
+    # Drop None entries and cast to float ndarray
+    if arr_like is None:
+        return np.array([], dtype=float)
+    seq = [v for v in list(arr_like) if v is not None]
+    return np.asarray(seq, dtype=float)
+
+
 def extract_series(obj, algo_name):
-    if algo_name.lower() == 'bics' or (hasattr(obj, 'f_plot') and hasattr(obj, 'g_plot')):
-        f = np.array(getattr(obj, 'f_plot'))
-        g = np.array(getattr(obj, 'g_plot'))
+    # Bi-CS/a-IRG/IIBA expose f_plot/g_plot; FC-BiO exposes *_history
+    if hasattr(obj, 'f_plot') and hasattr(obj, 'g_plot'):
+        f = _to_numeric(getattr(obj, 'f_plot'))
+        g = _to_numeric(getattr(obj, 'g_plot'))
     else:
-        # assume FCBiO layout
-        f = np.array(getattr(obj, 'l1_norm_history'))
-        g = np.array(getattr(obj, 'hinge_loss_history'))
+        f = _to_numeric(getattr(obj, 'l1_norm_history', []))
+        g = _to_numeric(getattr(obj, 'hinge_loss_history', []))
     return f, g
 
 
@@ -28,7 +36,7 @@ def resolve_pkl_name(name: str) -> str:
 def main():
     ap = argparse.ArgumentParser(description='Compare and plot results from saved runs')
     ap.add_argument('--results-dir', type=str, required=True, help='Directory containing saved pickles and baselines.json')
-    ap.add_argument('--algos', type=str, nargs='+', default=['Bi-CS-RL','Bi-CS-R','Bi-CS-N','FC-BiO','a-IRG'], help='Algorithm names to compare')
+    ap.add_argument('--algos', type=str, nargs='+', default=['Bi-CS-RL','Bi-CS-R','Bi-CS-N','Bi-CS-ER','FC-BiO','a-IRG','IIBA'], help='Algorithm names to compare')
     args = ap.parse_args()
 
     res_dir = args.results_dir

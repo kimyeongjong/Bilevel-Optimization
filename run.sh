@@ -32,7 +32,7 @@ python main.py \
   --results-dir "$RESULTS_DIR"
 
 if [[ "$PARALLEL" == "1" ]]; then
-  echo "Running Bi-CS variants (RL,R,N), FCBiO, and a-IRG in parallel…"
+  echo "Running Bi-CS variants (RL,R,N,ER), FCBiO, a-IRG, IIBA in parallel…"
   python main.py --algo bics --bics-mode RL \
     --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
     --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" &
@@ -45,6 +45,10 @@ if [[ "$PARALLEL" == "1" ]]; then
     --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
     --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" &
 
+  python main.py --algo bics --bics-mode ER --eps "$EPS" \
+    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
+    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" &
+
   python main.py --algo fcbio \
     --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
     --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --eps "$EPS" --seed "$SEED" --results-dir "$RESULTS_DIR" &
@@ -53,6 +57,10 @@ if [[ "$PARALLEL" == "1" ]]; then
     --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
     --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" \
     --airg-gamma0 "$AIRG_GAMMA0" --airg-eta0 "$AIRG_ETA0" --airg-b "$AIRG_B" --airg-r "$AIRG_R" &
+
+  python main.py --algo iiba \
+    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
+    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" &
 
   wait
 else
@@ -71,6 +79,11 @@ else
     --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
     --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR"
 
+  echo "Running Bi-CS-ER…"
+  python main.py --algo bics --bics-mode ER --eps "$EPS" \
+    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
+    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR"
+
   echo "Running FCBiO…"
   python main.py --algo fcbio \
     --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
@@ -81,9 +94,14 @@ else
     --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
     --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" \
     --airg-gamma0 "$AIRG_GAMMA0" --airg-eta0 "$AIRG_ETA0" --airg-b "$AIRG_B" --airg-r "$AIRG_R"
+
+  echo "Running IIBA…"
+  python main.py --algo iiba \
+    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
+    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR"
 fi
 
 echo "Plotting comparison…"
-python plot_compare.py --results-dir "$RESULTS_DIR" --algos "Bi-CS-RL" "Bi-CS-R" "Bi-CS-N" "FC-BiO" "a-IRG"
+python plot_compare.py --results-dir "$RESULTS_DIR" --algos "Bi-CS-RL" "Bi-CS-R" "Bi-CS-N" "Bi-CS-ER" "FC-BiO" "a-IRG" "IIBA"
 
 echo "Done. Results in $RESULTS_DIR"

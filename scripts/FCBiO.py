@@ -85,7 +85,7 @@ class FCBiO:
         for n in range(self.N):
             iter_start = time.time()  # binary search iteration start time
             t = (self.l + self.u) / 2
-            print("─────────────────────────────")
+            print("──────────── FC-BiO ────────────")
             print(f"[{n+1}/{self.N}] t = {(self.l + self.u) / 2:.6f}")
             
             # Initialize trajectories
@@ -94,7 +94,7 @@ class FCBiO:
             self.w_u = np.zeros(shape=(self.K, self.p), dtype=np.float32)
             self.w_u[0] = copy.deepcopy(bar_x)
             
-            for k in trange(self.K - 1, desc=f"   Sub-iterations (n={n+1})", leave=False):
+            for k in trange(self.K - 1, desc=f"FC-BiO Sub-iterations (n={n+1})", leave=False):
                 s = self.subgradient_psi(self.X, self.y, self.w[k], t)
                 if self.domain == 'box':
                     self.w[k + 1] = project_onto_box(self.w[k] - self.eta * s, self.bound)
