@@ -4,7 +4,7 @@ This project implements bilevel optimization algorithms for nonsmooth convex pro
 
 The code includes:
 
-- Bi-CS (Bilevel Co-Subgradient, Algorithm 2.1) with modes RL (know R and L), R (know R only), N (know none), and ER (episodic reset for unbounded domain).
+- Bi-CS (Bilevel Co-Subgradient, Algorithm 2.1) with modes RL (know R and L), R (know R only), N (know none), and ER (episodic reset for general domain).
 - FC-BiO — a binary-search-based variant using a composite objective max(f(x)−t, g(x)−g⋆).
 - a-IRG — deterministic Iteratively Regularized Gradient specialized to our bilevel setup.
 - IIBA — a simple iterative inner-then-outer baseline for comparison.
