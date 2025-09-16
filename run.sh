@@ -21,15 +21,21 @@ AIRG_ETA0=${AIRG_ETA0:-1.0}
 AIRG_B=${AIRG_B:-0.25}      # must be in (0, 0.5)
 AIRG_R=${AIRG_R:-0.5}       # must be in [0, 1)
 
-echo "Preparing baselines (g*, f*)…"
-python main.py \
-  --only-baselines \
-  --n-samples "$NSAMPLES" \
-  --label-idx "$LABEL_IDX" \
-  --data-dir "$DATA_DIR" \
-  --bound "$BOUND" \
-  --domain "$DOMAIN" \
-  --results-dir "$RESULTS_DIR"
+# Prepare baselines unless they already exist for this RESULTS_DIR
+BASE_FILE="$RESULTS_DIR/baselines.json"
+if [[ -f "$BASE_FILE" ]]; then
+  echo "Found existing baselines at $BASE_FILE — skipping computation."
+else
+  echo "Preparing baselines (g*, f*)…"
+  python main.py \
+    --only-baselines \
+    --n-samples "$NSAMPLES" \
+    --label-idx "$LABEL_IDX" \
+    --data-dir "$DATA_DIR" \
+    --bound "$BOUND" \
+    --domain "$DOMAIN" \
+    --results-dir "$RESULTS_DIR"
+fi
 
 if [[ "$PARALLEL" == "1" ]]; then
   echo "Running Bi-CS variants (RL,R,N,ER), FCBiO, a-IRG, IIBA in parallel…"

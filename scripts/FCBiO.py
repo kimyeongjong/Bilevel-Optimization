@@ -43,6 +43,8 @@ class FCBiO:
         self.L = L
         
         self.N = math.ceil(np.log2((self.u - self.l) / (self.eps / 2)))
+        if self.N == 0:
+            self.N = 1  # at least one outer iteration
         self.K = math.ceil(self.T / self.N)
         
         # Trajectories for iterates (x) and \eta_t
@@ -85,7 +87,7 @@ class FCBiO:
         for n in range(self.N):
             iter_start = time.time()  # binary search iteration start time
             t = (self.l + self.u) / 2
-            print("──────────── FC-BiO ────────────")
+            print("──────────── FC-BiO Progress ────────────")
             print(f"[{n+1}/{self.N}] t = {(self.l + self.u) / 2:.6f}")
             
             # Initialize trajectories
