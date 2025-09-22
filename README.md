@@ -45,7 +45,7 @@ python main.py --algo fcbio --n-samples 10000 --label-idx 0 --bound 50 --iters 1
 
 # a-IRG (uses same iteration flag)
 python main.py --algo airg --n-samples 10000 --label-idx 0 --bound 50 --iters 1000 \
-  --airg-gamma0 1.0 --airg-eta0 1.0 --airg-b 0.25 --airg-r 0.5
+  --airg-eta0 1.0 --airg-b 0.25 --airg-r 0.5
 ```
 
 2) Plot/compare saved results
@@ -57,7 +57,7 @@ python plot_compare.py --results-dir results/bd50_box_iters1000_eps0.1 --algos "
 Key outputs (under `--results-dir`):
 
 - `baselines.json`: cached g* and f* for the dataset/config
-- Pickled solver objects with histories: `Bi-CS-RL.pkl`, `Bi-CS-R.pkl`, `Bi-CS-N.pkl`, `Bi-CS-ER.pkl`, `FCBiO.pkl`, `aIRG.pkl`, `IIBA.pkl`
+- Algorithm metric logs (JSON): `Bi-CS-RL.json`, `Bi-CS-R.json`, `Bi-CS-N.json`, `Bi-CS-ER.json`, `FCBiO.json`, `aIRG.json`, `IIBA.json`
 - `plot_upper.png`, `plot_lower.png`: produced by `plot_compare.py`
 
 ## Arguments
@@ -67,7 +67,7 @@ Key outputs (under `--results-dir`):
 - `--data-dir`: Relative data subdirectory to store/find the `.npz` (default: `data`)
 - `--bound`: Box bound for parameters `(w, b)` (default: 50)
 - `--algo {bics,fcbio,airg,iiba}`: Select algorithm to run (default: bics)
-  - `--airg-gamma0`, `--airg-eta0`, `--airg-b`, `--airg-r`: a-IRG hyperparameters per Cor. 3.5
+  - `--airg-eta0`, `--airg-b`, `--airg-r`: a-IRG hyperparameters per Cor. 3.5 (`gamma0` defaults to R/L)
 - `--domain {box,ball}`: Feasible domain. `box` uses a hypercube constraint `(w,b) ∈ [-bound, bound]^{d+1}`; `ball` uses an L2-ball constraint `||(w,b)||_2 ≤ bound` (default: box)
 - `--iters`: Total iterations for algorithms (default: 1000)
 - `--eps`: Target accuracy for FC-BiO (default: 1e-1)

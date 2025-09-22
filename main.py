@@ -26,7 +26,6 @@ def parse_args():
     parser.add_argument('--iters', type=int, default=1000, help='Total iterations for algorithms')
     parser.add_argument('--eps', type=float, default=1e-2, help='Target accuracy for FC-BiO')
     # a-IRG hyperparameters (optional)
-    parser.add_argument('--airg-gamma0', type=float, default=1.0, help='a-IRG γ0 for γ_k=γ0/(k+1)^{1/2}')
     parser.add_argument('--airg-eta0', type=float, default=1.0, help='a-IRG η0 for η_k=η0/(k+1)^b')
     parser.add_argument('--airg-b', type=float, default=0.25, help='a-IRG exponent b in (0, 0.5)')
     parser.add_argument('--airg-r', type=float, default=0.5, help='a-IRG averaging exponent r in [0,1)')
@@ -94,69 +93,69 @@ if __name__ == "__main__":
     if args.only_baselines:
         print(f"Baselines ready at {baselines_path}")
         raise SystemExit(0)
+    
+    n, d = X.shape
+    if args.domain == 'box':
+        R = 2.0 * bound * np.sqrt(d + 1)
+    else:
+        R = 2.0 * bound
+    Lf = np.sqrt(d) / d if d > 0 else 0.0
+    X_mean = np.asarray(X.mean(axis=0)).ravel()
+    L = max(Lf, np.sqrt(np.sum(X_mean**2) + 1))
+    rng = np.random.default_rng(args.seed)
+    if args.domain == 'box':
+        initial = rng.uniform(-bound, bound, size=d + 1)
+        #bound = np.linalg.norm(initial, ord=np.inf)
+        #R = 2.0 * bound * np.sqrt(d + 1)
+    else:
+        direction = rng.normal(size=d + 1)
+        norm = np.linalg.norm(direction)
+        if norm == 0.0:
+            direction = np.zeros(d + 1)
+            direction[0] = 1.0
+            norm = 1.0
+        direction /= norm
+        radius = bound * (rng.random() ** (1.0 / (d + 1)))
+        initial = direction * radius
+        #bound = np.linalg.norm(initial, ord=2)
+        #R = 2.0 * bound
 
     # Run a single algorithm and save its result object
     if args.algo == 'bics':
-        n, d = X.shape
         f_hat = np.linalg.norm(w_for_fhat.copy(), ord=1) / d if d > 0 else 0.0
         if f_hat <= 0.0:
             f_hat = bound
-        R = bound * np.sqrt(d + 1)
-        Lf = np.sqrt(d) / d if d > 0 else 0.0
-        X_mean = np.asarray(X.mean(axis=0)).ravel()
-        Lg = np.sqrt(np.sum(X_mean**2) + 1)
-        L  = max(Lf, Lg)
-        rng = np.random.default_rng(args.seed)
-        initial = rng.uniform(-bound, bound, size=d + 1)
 
-        bics = BiCS(X, y, Lg, L, R, bound, initial, num_iter=args.iters, eps=args.eps, domain=args.domain, mode=args.bics_mode)
+        bics = BiCS(X, y, L, R, bound, initial, num_iter=args.iters, eps=args.eps, domain=args.domain, mode=args.bics_mode)
         bics.solve(start_iter=1, end_iter=args.iters)
         name = f"Bi-CS-{args.bics_mode}"
         save(save_path, bics, **{'0': name})
-        print(f"Saved BiCS result to {save_path}/{name}.pkl")
+        print(f"Saved BiCS result to {save_path}/{name}.json")
     elif args.algo == 'fcbio':
-        n, d = X.shape
-        R = bound * np.sqrt(d + 1)
-        Lf = np.sqrt(d) / d if d > 0 else 0.0
-        X_mean = np.asarray(X.mean(axis=0)).ravel()
-        Lg = np.sqrt(np.sum(X_mean**2) + 1)
-        L  = max(Lf, Lg)
-        rng = np.random.default_rng(args.seed)
-        initial = rng.uniform(-bound, bound, size=d + 1)
-
-        fcbio = FCBiO(X, y, L, bound, initial, T=args.iters, l=0, u=max(1e-6, np.linalg.norm(w_for_fhat, 1) / max(1, d)), g_star_hat=g_opt, eps=args.eps, domain=args.domain)
+        fcbio = FCBiO(X, y, L, bound, initial, T=args.iters, l=0, u=max(1e-6, f_opt * 64), g_star_hat=g_opt, eps=args.eps, domain=args.domain)
         _ = fcbio.solve()
         save(save_path, fcbio, **{'0': 'FCBiO'})
-        print(f"Saved FCBiO result to {save_path}/FCBiO.pkl")
+        print(f"Saved FCBiO result to {save_path}/FCBiO.json")
     elif args.algo == 'airg':
-        n, d = X.shape
-        rng = np.random.default_rng(args.seed)
-        initial = rng.uniform(-bound, bound, size=d + 1)
         airg = aIRG(
-            X, y,
+            X,
+            y,
+            L,
+            R,
             bound=bound,
             initial=initial,
             num_iter=args.iters,
             domain=args.domain,
-            gamma0=args.airg_gamma0,
             eta0=args.airg_eta0,
             b=args.airg_b,
             r=args.airg_r,
         )
         _ = airg.solve(start_iter=0, end_iter=args.iters)
         save(save_path, airg, **{'0': 'aIRG'})
-        print(f"Saved aIRG result to {save_path}/aIRG.pkl")
+        print(f"Saved aIRG result to {save_path}/aIRG.json")
     elif args.algo == 'iiba':
-        n, d = X.shape
-        R = bound * np.sqrt(d + 1)
-        Lf = np.sqrt(d) / d if d > 0 else 0.0
-        X_mean = np.asarray(X.mean(axis=0)).ravel()
-        Lg = np.sqrt(np.sum(X_mean**2) + 1)
-        L  = max(Lf, Lg)
-        rng = np.random.default_rng(args.seed)
-        initial = rng.uniform(-bound, bound, size=d + 1)
         iiba = IIBA(X, y, L, R, bound, initial, num_iter=args.iters, domain=args.domain)
         _ = iiba.solve(start_iter=1, end_iter=args.iters)
         save(save_path, iiba, **{'0': 'IIBA'})
-        print(f"Saved IIBA result to {save_path}/IIBA.pkl")
+        print(f"Saved IIBA result to {save_path}/IIBA.json")
     

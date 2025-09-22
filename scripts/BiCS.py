@@ -18,7 +18,6 @@ class BiCS:
         self,
         X,
         y,
-        Lg,
         L,
         R,
         bound,
@@ -35,7 +34,6 @@ class BiCS:
         self.n_samples, self.n_features = X.shape
         # Lipschitz constants
         self.L = L
-        self.Lg = Lg
         # Radius and bounds
         self.R = R
         self.bound = bound

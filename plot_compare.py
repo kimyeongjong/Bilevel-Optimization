@@ -13,19 +13,24 @@ def _to_numeric(arr_like):
     return np.asarray(seq, dtype=float)
 
 
-def extract_series(obj, algo_name):
-    # Bi-CS/a-IRG/IIBA expose f_plot/g_plot; FC-BiO exposes *_history
-    if hasattr(obj, 'f_plot') and hasattr(obj, 'g_plot'):
-        f = _to_numeric(getattr(obj, 'f_plot'))
-        g = _to_numeric(getattr(obj, 'g_plot'))
+def extract_series(payload):
+    if isinstance(payload, dict):
+        f = _to_numeric(payload.get('f', []))
+        g = _to_numeric(payload.get('g', []))
+        return f, g
+
+    # Backward compatibility: handle old pickled solver objects
+    if hasattr(payload, 'f_plot') and hasattr(payload, 'g_plot'):
+        f = _to_numeric(getattr(payload, 'f_plot'))
+        g = _to_numeric(getattr(payload, 'g_plot'))
     else:
-        f = _to_numeric(getattr(obj, 'l1_norm_history', []))
-        g = _to_numeric(getattr(obj, 'hinge_loss_history', []))
+        f = _to_numeric(getattr(payload, 'l1_norm_history', []))
+        g = _to_numeric(getattr(payload, 'hinge_loss_history', []))
     return f, g
 
 
-def resolve_pkl_name(name: str) -> str:
-    # Map display names to pickle base filenames
+def resolve_base_name(name: str) -> str:
+    # Map display names to file base names
     mapping = {
         'FC-BiO': 'FCBiO',
         'a-IRG': 'aIRG',
@@ -33,9 +38,13 @@ def resolve_pkl_name(name: str) -> str:
     return mapping.get(name, name)
 
 
+def candidate_files(base: str):
+    return [f"{base}.json", f"{base}.pkl"]
+
+
 def main():
     ap = argparse.ArgumentParser(description='Compare and plot results from saved runs')
-    ap.add_argument('--results-dir', type=str, required=True, help='Directory containing saved pickles and baselines.json')
+    ap.add_argument('--results-dir', type=str, required=True, help='Directory containing saved metrics (JSON) and baselines.json')
     ap.add_argument('--algos', type=str, nargs='+', default=['Bi-CS-RL','Bi-CS-R','Bi-CS-N','Bi-CS-ER','FC-BiO','a-IRG','IIBA'], help='Algorithm names to compare')
     args = ap.parse_args()
 
@@ -50,13 +59,20 @@ def main():
 
     series = {}
     for name in args.algos:
-        pkl = f'{resolve_pkl_name(name)}.pkl'
-        full = os.path.join(res_dir, pkl)
-        if not os.path.exists(full):
-            print(f'Warning: missing {full}; skipping')
+        base = resolve_base_name(name)
+        obj = None
+        chosen = None
+        for candidate in candidate_files(base):
+            full = os.path.join(res_dir, candidate)
+            if os.path.exists(full):
+                chosen = candidate
+                obj = load(candidate, path=res_dir)
+                break
+        if obj is None:
+            print(f'Warning: missing results for {name}; expected one of {candidate_files(base)} in {res_dir}. Skipping.')
             continue
-        obj = load(os.path.basename(full), path=res_dir)
-        f, g = extract_series(obj, name)
+
+        f, g = extract_series(obj)
         series[name] = (f, g)
 
     if len(series) == 0:

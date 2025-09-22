@@ -16,9 +16,8 @@ RESULTS_DIR=${RESULTS_DIR:-results/bd${BOUND}_${DOMAIN}_iters${ITERS}_eps${EPS}}
 PARALLEL=${PARALLEL:-0}   # set to 1 to run algos in parallel after baselines
 
 # a-IRG hyperparameters (see Corollary 3.5)
-AIRG_GAMMA0=${AIRG_GAMMA0:-1.0}
-AIRG_ETA0=${AIRG_ETA0:-1.0}
-AIRG_B=${AIRG_B:-0.25}      # must be in (0, 0.5)
+AIRG_ETA0=${AIRG_ETA0:-1.0} # must be > 0
+AIRG_B=${AIRG_B:-0.1}       # must be in (0, 0.5)
 AIRG_R=${AIRG_R:-0.5}       # must be in [0, 1)
 
 # Prepare baselines unless they already exist for this RESULTS_DIR
@@ -62,7 +61,7 @@ if [[ "$PARALLEL" == "1" ]]; then
   python main.py --algo airg \
     --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
     --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" \
-    --airg-gamma0 "$AIRG_GAMMA0" --airg-eta0 "$AIRG_ETA0" --airg-b "$AIRG_B" --airg-r "$AIRG_R" &
+    --airg-eta0 "$AIRG_ETA0" --airg-b "$AIRG_B" --airg-r "$AIRG_R" &
 
   python main.py --algo iiba \
     --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
@@ -99,7 +98,7 @@ else
   python main.py --algo airg \
     --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
     --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" \
-    --airg-gamma0 "$AIRG_GAMMA0" --airg-eta0 "$AIRG_ETA0" --airg-b "$AIRG_B" --airg-r "$AIRG_R"
+    --airg-eta0 "$AIRG_ETA0" --airg-b "$AIRG_B" --airg-r "$AIRG_R"
 
   echo "Running IIBA…"
   python main.py --algo iiba \

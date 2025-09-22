@@ -16,9 +16,9 @@ def hinge_loss_minimize(X, y, bound=GRB.INFINITY, domain='box'):
         w = model.addVars(n_features, lb=-bound, ub=bound, name="w")
         b = model.addVar(lb=-bound, ub=bound, name="b")
     else:
-        # Unbounded variables + L2-ball constraint later
-        w = model.addVars(n_features, name="w")
-        b = model.addVar(name="b")
+        # Truly unbounded variables (both signs allowed); enforce L2-ball separately
+        w = model.addVars(n_features, lb=-GRB.INFINITY, name="w")
+        b = model.addVar(lb=-GRB.INFINITY, name="b")
     xi = model.addVars(n_samples, lb=0.0, name="xi")
     
     # Constraints: hinge loss slack for each sample
@@ -61,8 +61,9 @@ def L1_norm_second_minimize(X, y, g_opt, bound=GRB.INFINITY, domain='box'):
         w = m.addVars(d, lb=-bound, ub=bound, name='w')
         b = m.addVar(lb=-bound, ub=bound, name='b')
     else:
-        w = m.addVars(d, name='w')
-        b = m.addVar(name='b')
+        # Truly unbounded variables (both signs allowed); enforce L2-ball separately
+        w = m.addVars(d, lb=-GRB.INFINITY, name='w')
+        b = m.addVar(lb=-GRB.INFINITY, name='b')
     u = m.addVars(d, lb=0.0, name='u') # u_i = |w_i|
     xi = m.addVars(n, lb=0.0, name='xi')
 

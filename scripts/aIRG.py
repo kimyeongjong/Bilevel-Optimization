@@ -31,11 +31,12 @@ class aIRG:
         self,
         X,
         y,
+        L,
+        R,
         bound,
         initial,
         num_iter=1000,
         domain="box",
-        gamma0=1.0,
         eta0=1.0,
         b=0.25,
         r=0.5,
@@ -46,12 +47,14 @@ class aIRG:
         self.n_samples, self.n_features = X.shape
 
         # Geometry / domain
+        self.L = float(L)
+        self.R = float(R)
         self.bound = float(bound)
         self.domain = domain  # 'box' or 'ball'
         self.num_iter = int(num_iter)
 
         # Stepsize hyperparameters (per Corollary 3.5)
-        self.gamma0 = float(gamma0)
+        self.gamma0 = self.R / self.L
         self.eta0 = float(eta0)
         self.b = float(b)
         self.r = float(r)
@@ -140,4 +143,3 @@ class aIRG:
 
         self.checkpoint = xk.copy()
         return xbar
-
