@@ -45,7 +45,7 @@ class FCBiO:
         self.N = math.ceil(np.log2((self.u - self.l) / (self.eps / 2)))
         if self.N == 0:
             self.N = 1  # at least one outer iteration
-        self.K = math.ceil(self.T / self.N)
+        self.K = math.floor(self.T / self.N)
         
         # Trajectories for iterates (x) and \eta_t
         self.x_trajectory_mean = np.zeros((self.N * self.K, self.p), dtype=np.float32)
@@ -59,9 +59,13 @@ class FCBiO:
         # Projection bound (hypercube radius)
         self.bound = bound
         self.domain = domain  # 'box' or 'ball'
+        self.grad = []
         
         # Stepsize for \eta_t
-        D = 2 * self.bound * np.sqrt(self.d + 1)
+        if self.domain == 'box':
+            D = 2 * self.bound * np.sqrt(self.d + 1)
+        else:  # Euclidean ball
+            D = 2 * self.bound
         self.eta = D / (L * self.K**(1/2))
         
         # To store history of objective evaluations
@@ -74,8 +78,10 @@ class FCBiO:
         tilde_g_x = (hinge_loss(X, y, x) - self.g_star_hat) / 2
         if f_x - t >= tilde_g_x:
             subgrad_psi = subgradient_l1_norm(x, self.d)
+            self.grad.append('f')
         else:
             subgrad_psi = subgradient_hinge_loss(X, y, x) / 2
+            self.grad.append('g')
         return subgrad_psi
         
     def solve(self):
@@ -91,12 +97,12 @@ class FCBiO:
             print(f"[{n+1}/{self.N}] t = {(self.l + self.u) / 2:.6f}")
             
             # Initialize trajectories
-            self.w = np.zeros(shape=(self.K, self.p), dtype=np.float32)
+            self.w = np.zeros(shape=(self.K + 1, self.p), dtype=np.float32)
             self.w[0] = copy.deepcopy(bar_x)
-            self.w_u = np.zeros(shape=(self.K, self.p), dtype=np.float32)
+            self.w_u = np.zeros(shape=(self.K + 1, self.p), dtype=np.float32)
             self.w_u[0] = copy.deepcopy(bar_x)
             
-            for k in trange(self.K - 1, desc=f"FC-BiO Sub-iterations (n={n+1})", leave=False):
+            for k in trange(self.K, desc=f"FC-BiO Sub-iterations (n={n+1})", leave=False):
                 s = self.subgradient_psi(self.X, self.y, self.w[k], t)
                 if self.domain == 'box':
                     self.w[k + 1] = project_onto_box(self.w[k] - self.eta * s, self.bound)
@@ -109,12 +115,16 @@ class FCBiO:
                 else:
                     self.w_u[k + 1] = project_onto_ball(self.w_u[k] - self.eta * s_u, self.bound)
             
-            self.w_u_mean = np.cumsum(self.w_u, axis=0) / (np.arange(1, len(self.w_u) + 1))[:, np.newaxis]
+            if n == self.N - 1:
+                self.w_u_mean = np.cumsum(self.w_u[:-1], axis=0) / (np.arange(1, self.K + 1))[:, np.newaxis]
+            else:
+                self.w_u_mean = np.cumsum(self.w[:-1], axis=0) / (np.arange(1, self.K + 1))[:, np.newaxis]
             self.x_trajectory_mean[n * self.K:(n + 1) * self.K] = copy.deepcopy(self.w_u_mean)
             
-            hat_x_t = np.mean(self.w, axis=0)
+            hat_x_t = np.mean(self.w[:-1], axis=0)
             f_hat_x_t = l1_norm(hat_x_t, self.d)
             tilde_g_hat_x_t = (hinge_loss(self.X, self.y, hat_x_t) - self.g_star_hat) / 2
+            print(f"f( x̂(t) ) = {f_hat_x_t:.6e},  (ĝ( x̂(t) ) - g_opt)/2 = {tilde_g_hat_x_t:.6e}")
             hat_psi_ast_t = max(f_hat_x_t - t, tilde_g_hat_x_t)
             
             bar_x = copy.deepcopy(hat_x_t)
@@ -136,11 +146,11 @@ class FCBiO:
         # Evaluate trajectory
         self.l1_norm_history = np.array([
             l1_norm(self.x_trajectory_mean[i], self.d)
-            for i in range(self.T)
+            for i in range(len(self.x_trajectory_mean))
         ])
         self.hinge_loss_history = np.array([
             hinge_loss(self.X, self.y, self.x_trajectory_mean[i])
-            for i in range(self.T)
+            for i in range(len(self.x_trajectory_mean))
         ])
         
         return self.x_trajectory_mean, self.l1_norm_history, self.hinge_loss_history

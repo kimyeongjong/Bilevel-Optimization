@@ -38,72 +38,92 @@ fi
 
 if [[ "$PARALLEL" == "1" ]]; then
   echo "Running Bi-CS variants (RL,R,N,ER), FCBiO, a-IRG, IIBA in parallel…"
-  python main.py --algo bics --bics-mode RL \
-    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
-    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" &
 
-  python main.py --algo bics --bics-mode R \
-    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
-    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" &
+  for MODE in RL R N ER; do
+    OUT_JSON="$RESULTS_DIR/Bi-CS-$MODE.json"
+    if [[ -f "$OUT_JSON" ]]; then
+      echo "Found $OUT_JSON — skipping Bi-CS-$MODE."
+    else
+      if [[ "$MODE" == "ER" ]]; then EXTRA=(--eps "$EPS"); else EXTRA=(); fi
+      python main.py --algo bics --bics-mode "$MODE" \
+        --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
+        --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" \
+        "${EXTRA[@]}" &
+    fi
+  done
 
-  python main.py --algo bics --bics-mode N \
-    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
-    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" &
+  # FCBiO
+  if [[ -f "$RESULTS_DIR/FCBiO.json" ]]; then
+    echo "Found $RESULTS_DIR/FCBiO.json — skipping FCBiO."
+  else
+    python main.py --algo fcbio \
+      --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
+      --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --eps "$EPS" --seed "$SEED" --results-dir "$RESULTS_DIR" &
+  fi
 
-  python main.py --algo bics --bics-mode ER --eps "$EPS" \
-    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
-    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" &
+  # a-IRG
+  if [[ -f "$RESULTS_DIR/aIRG.json" ]]; then
+    echo "Found $RESULTS_DIR/aIRG.json — skipping a-IRG."
+  else
+    python main.py --algo airg \
+      --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
+      --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" \
+      --airg-eta0 "$AIRG_ETA0" --airg-b "$AIRG_B" --airg-r "$AIRG_R" &
+  fi
 
-  python main.py --algo fcbio \
-    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
-    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --eps "$EPS" --seed "$SEED" --results-dir "$RESULTS_DIR" &
-
-  python main.py --algo airg \
-    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
-    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" \
-    --airg-eta0 "$AIRG_ETA0" --airg-b "$AIRG_B" --airg-r "$AIRG_R" &
-
-  python main.py --algo iiba \
-    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
-    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" &
+  # IIBA
+  if [[ -f "$RESULTS_DIR/IIBA.json" ]]; then
+    echo "Found $RESULTS_DIR/IIBA.json — skipping IIBA."
+  else
+    python main.py --algo iiba \
+      --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
+      --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" &
+  fi
 
   wait
 else
-  echo "Running Bi-CS-RL…"
-  python main.py --algo bics --bics-mode RL \
-    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
-    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR"
+  # Sequential execution with skip-if-exists guards
+  for MODE in RL R N ER; do
+    OUT_JSON="$RESULTS_DIR/Bi-CS-$MODE.json"
+    if [[ -f "$OUT_JSON" ]]; then
+      echo "Found $OUT_JSON — skipping Bi-CS-$MODE."
+    else
+      echo "Running Bi-CS-$MODE…"
+      if [[ "$MODE" == "ER" ]]; then EXTRA=(--eps "$EPS"); else EXTRA=(); fi
+      python main.py --algo bics --bics-mode "$MODE" \
+        --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
+        --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" \
+        "${EXTRA[@]}"
+    fi
+  done
 
-  echo "Running Bi-CS-R…"
-  python main.py --algo bics --bics-mode R \
-    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
-    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR"
+  if [[ -f "$RESULTS_DIR/FCBiO.json" ]]; then
+    echo "Found $RESULTS_DIR/FCBiO.json — skipping FCBiO."
+  else
+    echo "Running FCBiO…"
+    python main.py --algo fcbio \
+      --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
+      --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --eps "$EPS" --seed "$SEED" --results-dir "$RESULTS_DIR"
+  fi
 
-  echo "Running Bi-CS-N…"
-  python main.py --algo bics --bics-mode N \
-    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
-    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR"
+  if [[ -f "$RESULTS_DIR/aIRG.json" ]]; then
+    echo "Found $RESULTS_DIR/aIRG.json — skipping a-IRG."
+  else
+    echo "Running a-IRG…"
+    python main.py --algo airg \
+      --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
+      --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" \
+      --airg-eta0 "$AIRG_ETA0" --airg-b "$AIRG_B" --airg-r "$AIRG_R"
+  fi
 
-  echo "Running Bi-CS-ER…"
-  python main.py --algo bics --bics-mode ER --eps "$EPS" \
-    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
-    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR"
-
-  echo "Running FCBiO…"
-  python main.py --algo fcbio \
-    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
-    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --eps "$EPS" --seed "$SEED" --results-dir "$RESULTS_DIR"
-
-  echo "Running a-IRG…"
-  python main.py --algo airg \
-    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
-    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR" \
-    --airg-eta0 "$AIRG_ETA0" --airg-b "$AIRG_B" --airg-r "$AIRG_R"
-
-  echo "Running IIBA…"
-  python main.py --algo iiba \
-    --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
-    --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR"
+  if [[ -f "$RESULTS_DIR/IIBA.json" ]]; then
+    echo "Found $RESULTS_DIR/IIBA.json — skipping IIBA."
+  else
+    echo "Running IIBA…"
+    python main.py --algo iiba \
+      --skip-optimum --n-samples "$NSAMPLES" --label-idx "$LABEL_IDX" --data-dir "$DATA_DIR" \
+      --bound "$BOUND" --domain "$DOMAIN" --iters "$ITERS" --seed "$SEED" --results-dir "$RESULTS_DIR"
+  fi
 fi
 
 echo "Plotting comparison…"

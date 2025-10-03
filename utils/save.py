@@ -35,6 +35,12 @@ def save(path="results", *args, **kwargs):
             "f": f_vals,
             "g": g_vals,
         }
+        # Optionally include extra diagnostics if present (e.g., FCBiO.grad)
+        if hasattr(arg, "grad") and arg.grad is not None:
+            try:
+                payload["grad"] = list(arg.grad)
+            except Exception:
+                pass
         full_path = os.path.join(path, f"{key}.json")
         with open(full_path, "w", encoding="utf-8") as f:
             json.dump(payload, f)
