@@ -60,6 +60,11 @@ Key outputs (under `--results-dir`):
 - Algorithm metric logs (JSON): `Bi-CS-RL.json`, `Bi-CS-R.json`, `Bi-CS-N.json`, `Bi-CS-ER.json`, `FCBiO.json`, `aIRG.json`, `IIBA.json`
 - `plot_upper.png`, `plot_lower.png`: produced by `plot_compare.py`
 
+Notes on saved metrics JSON:
+
+- Each algorithm file contains arrays for the upper objective (`f`) and lower objective (`g`) over iterations.
+- For FC-BiO, an additional optional field `grad` may be present when available, storing the subgradient branch chosen at each step (values `'f'` or `'g'`). This is intended for debugging/analysis and can be large for long runs.
+
 ## Arguments
 
 - `--n-samples`: Number of samples to use (default: 10000)
@@ -106,6 +111,13 @@ DOMAIN=ball NSAMPLES=5000 BOUND=25 ITERS=1500 PARALLEL=1 ./run.sh
 # Sequential run (PARALLEL=0) with box domain
 PARALLEL=0 NSAMPLES=10000 ./run.sh
 ```
+
+Behavior details:
+
+- Baseline caching: if `baselines.json` already exists in `RESULTS_DIR`, the baseline stage is skipped.
+- Per-algorithm skip-if-exists: for each algorithm, `run.sh` checks for its result JSON in `RESULTS_DIR` and skips rerunning if present:
+  - `Bi-CS-RL.json`, `Bi-CS-R.json`, `Bi-CS-N.json`, `Bi-CS-ER.json`, `FCBiO.json`, `aIRG.json`, `IIBA.json`.
+  - To force a rerun for a specific algorithm, delete its JSON (e.g., `rm results/.../FCBiO.json`) and rerun `run.sh`.
 
 ## Domains and Baselines
 
